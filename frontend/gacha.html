@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>뽑기 — 젖소 배틀</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="page">
+  <div class="hud">
+    <div class="hud-title">🐄 카드 뽑기</div>
+    <div class="hud-milk" id="hud-milk">🥛 0</div>
+  </div>
+
+  <!-- 뽑기 선택 화면 -->
+  <div id="screen-select" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+    <!-- 무료 뽑기 -->
+    <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;">무료 뽑기</div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">1시간마다 1회 무료!</div>
+      <div id="free-cooldown" style="font-size:12px;color:var(--red);margin-bottom:8px;display:none;"></div>
+      <button id="btn-free" class="btn btn-primary btn-full" onclick="doFreeDraw()">무료 뽑기</button>
+    </div>
+
+    <!-- 우유 뽑기 -->
+    <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
+      <div style="font-size:15px;font-weight:600;margin-bottom:4px;">우유 뽑기</div>
+      <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">우유 100개 소모</div>
+      <button id="btn-milk" class="btn btn-amber btn-full" onclick="doMilkDraw()">🥛 100개로 뽑기</button>
+    </div>
+
+    <!-- 확률표 -->
+    <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;">뽑기 확률</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span class="card-grade grade-노말">노말</span><span>55%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span class="card-grade grade-레어">레어</span><span>30%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span class="card-grade grade-에픽">에픽</span><span>12%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;">
+          <span class="card-grade grade-레전드">레전드</span><span>3%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 뽑기 씬 화면 -->
+  <div id="screen-gacha" style="display:none;">
+    <div id="gacha-container"></div>
+  </div>
+
+  <nav class="nav">
+    <a href="/farm.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>농장
+    </a>
+    <a href="/gacha.html" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>뽑기
+    </a>
+    <a href="/collection.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>컬렉션
+    </a>
+    <a href="/battle.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v-1.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10v1.5C10 7.33 9.33 8 8.5 8S7 7.33 7 6.5 7.67 5 8.5 5z"/></svg>배틀
+    </a>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script src="/static/api.js"></script>
+<script src="/static/gacha.js"></script>
+<script>
+if (!API.isLoggedIn()) location.href = '/';
+
+let milk = parseInt(localStorage.getItem('milk') || '0');
+
+function toast(msg, dur=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function updateMilkHUD(val) {
+  milk = val;
+  localStorage.setItem('milk', val);
+  document.getElementById('hud-milk').textContent = `🥛 ${val.toLocaleString()}`;
+  document.getElementById('btn-milk').disabled = val < 100;
+}
+
+async function checkFreeStatus() {
+  try {
+    const data = await API.get('/cards/draw/free/status');
+    const btn = document.getElementById('btn-free');
+    const cd  = document.getElementById('free-cooldown');
+    if (data.can_draw) {
+      btn.disabled = false; cd.style.display = 'none';
+    } else {
+      btn.disabled = true; cd.style.display = 'block';
+      const h = Math.floor(data.remaining_seconds / 3600);
+      const m = Math.floor((data.remaining_seconds % 3600) / 60);
+      const s = data.remaining_seconds % 60;
+      cd.textContent = `다음 무료뽑기까지 ${h}시간 ${m}분 ${s}초`;
+      setTimeout(checkFreeStatus, 1000);
+    }
+  } catch(e) {}
+}
+
+function showGachaScene() {
+  document.getElementById('screen-select').style.display = 'none';
+  document.getElementById('screen-gacha').style.display = 'block';
+}
+
+function backToSelect() {
+  document.getElementById('screen-select').style.display = 'block';
+  document.getElementById('screen-gacha').style.display = 'none';
+}
+
+async function doFreeDraw() {
+  try {
+    const data = await API.post('/cards/draw/free');
+    showGachaScene();
+    gachaScene = new GachaScene('gacha-container');
+    gachaScene.startSingle(data.cards[0], () => {
+      backToSelect(); checkFreeStatus();
+    });
+  } catch(e) { toast(e.message); }
+}
+
+async function doMilkDraw() {
+  if (milk < 100) return toast('우유가 부족합니다');
+  try {
+    const data = await API.post('/cards/draw/milk');
+    updateMilkHUD(data.milk !== undefined ? data.milk : milk - 100);
+    const farmData = await API.get('/farm/status');
+    updateMilkHUD(farmData.milk);
+    showGachaScene();
+    gachaScene = new GachaScene('gacha-container');
+    gachaScene.startSingle(data.cards[0], backToSelect);
+  } catch(e) { toast(e.message); }
+}
+
+(async () => {
+  try {
+    const data = await API.get('/farm/status');
+    updateMilkHUD(data.milk);
+  } catch(e) {}
+  checkFreeStatus();
+})();
+</script>
+</body>
+</html>

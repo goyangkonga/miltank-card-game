@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>농장 — 젖소 배틀</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+#farm-stage {
+  position:relative;width:100%;height:280px;overflow:hidden;
+  background:linear-gradient(180deg,#d4edda 0%,#a8d5b5 60%,#87c49a 100%);
+  border-radius:0 0 16px 16px;
+}
+.farm-cow {
+  position:absolute;bottom:16px;
+  width:72px;height:72px;object-fit:contain;
+  cursor:default;
+  animation:farmBob var(--dur,2.5s) ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+}
+.milk-drop-icon {
+  position:absolute;font-size:28px;cursor:pointer;
+  animation:milkAppear .3s ease forwards;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.15));
+  z-index:10;
+}
+.milk-drop-icon:active { transform:scale(1.3); }
+@keyframes farmBob {
+  0%,100%{transform:translateY(0) scaleX(1)}
+  25%{transform:translateY(-8px) scaleX(1.03)}
+  75%{transform:translateY(-4px) scaleX(.97)}
+}
+@keyframes milkAppear {
+  from{opacity:0;transform:scale(.5) translateY(-10px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes milkCollect {
+  to{opacity:0;transform:scale(1.5) translateY(-30px)}
+}
+.empty-farm {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:8px;color:#2d6a4f;
+}
+.milk-bar-wrap {
+  height:8px;background:#E6F1FB;border-radius:4px;overflow:hidden;margin:4px 0;
+}
+.milk-bar {
+  height:100%;background:#378ADD;border-radius:4px;transition:width .4s ease;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hud">
+    <div class="hud-title">🌿 나의 농장</div>
+    <div class="hud-milk" id="hud-milk">🥛 0</div>
+  </div>
+
+  <!-- 농장 스테이지 -->
+  <div id="farm-stage">
+    <div class="empty-farm" id="farm-empty" style="display:none;">
+      <div style="font-size:40px;">🌱</div>
+      <div style="font-size:14px;font-weight:500;">젖소가 없어요!</div>
+      <div style="font-size:12px;">뽑기에서 젖소를 획득해보세요</div>
+    </div>
+  </div>
+
+  <!-- 우유 현황 -->
+  <div style="margin:12px;background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:500;">우유 현황</span>
+      <span id="milk-text" style="font-size:13px;color:var(--amber);font-weight:500;">0 / 9999</span>
+    </div>
+    <div class="milk-bar-wrap">
+      <div class="milk-bar" id="milk-bar" style="width:0%;"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px;" id="milk-hint">
+      젖소를 터치하면 우유가 나옵니다
+    </div>
+  </div>
+
+  <!-- 보유 카드 요약 -->
+  <div style="margin:0 12px 12px;">
+    <div class="section-head" style="padding:0 0 8px;">보유 젖소</div>
+    <div id="card-summary" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- 신규 유저 10연속 뽑기 오버레이 -->
+  <div id="new-user-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg);border-radius:var(--radius);padding:24px;max-width:360px;width:90%;text-align:center;">
+      <div style="font-size:36px;margin-bottom:8px;">🎁</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:6px;">신규 유저 혜택!</div>
+      <div style="font-size:13px;color:var(--text-sub);margin-bottom:20px;">10연속 뽑기를 무료로 드립니다!</div>
+      <div id="new-user-gacha-container"></div>
+      <button id="new-user-start-btn" class="btn btn-primary btn-full" onclick="startNewUserGacha()">지금 바로 뽑기!</button>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a href="/farm.html" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>농장
+    </a>
+    <a href="/gacha.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>뽑기
+    </a>
+    <a href="/collection.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>컬렉션
+    </a>
+    <a href="/battle.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v-1.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10v1.5C10 7.33 9.33 8 8.5 8S7 7.33 7 6.5 7.67 5 8.5 5z"/></svg>배틀
+    </a>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script src="/static/api.js"></script>
+<script src="/static/gacha.js"></script>
+<script>
+if (!API.isLoggedIn()) location.href = '/';
+
+let farmCards = [];
+
+function toast(msg, dur=2000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function updateMilkUI(val) {
+  localStorage.setItem('milk', val);
+  document.getElementById('hud-milk').textContent = `🥛 ${val.toLocaleString()}`;
+  document.getElementById('milk-text').textContent = `${val.toLocaleString()} / 9,999`;
+  document.getElementById('milk-bar').style.width = Math.min(100, (val/9999)*100) + '%';
+}
+
+function renderFarm(cards) {
+  farmCards = cards;
+  const stage = document.getElementById('farm-stage');
+  // 우유 드랍 아이콘 제외하고 소만 초기화
+  stage.querySelectorAll('.farm-cow').forEach(e => e.remove());
+
+  if (!cards.length) {
+    document.getElementById('farm-empty').style.display = 'flex';
+    return;
+  }
+  document.getElementById('farm-empty').style.display = 'none';
+
+  // 보유 카드 최대 12마리까지 표시
+  const show = cards.slice(0, 12);
+  const positions = [];
+  show.forEach((card, i) => {
+    const img = document.createElement('img');
+    img.className = 'farm-cow';
+    img.src = `/images/cards/${String(card.id).padStart(3,'0')}.png`;
+    img.onerror = () => img.src = '';
+
+    // 겹치지 않는 위치 계산
+    let left, tries = 0;
+    do { left = 5 + Math.random() * 80; tries++; }
+    while (positions.some(p => Math.abs(p - left) < 12) && tries < 20);
+    positions.push(left);
+
+    img.style.left = left + '%';
+    img.style.setProperty('--dur', (2 + Math.random() * 1.5) + 's');
+    img.style.setProperty('--delay', (Math.random() * 1.5) + 's');
+    // 랜덤하게 좌우 반전
+    if (Math.random() > 0.5) img.style.transform = 'scaleX(-1)';
+    stage.appendChild(img);
+  });
+
+  // 카드 요약
+  const summary = document.getElementById('card-summary');
+  summary.innerHTML = '';
+  const gradeCounts = {};
+  cards.forEach(c => gradeCounts[c.grade] = (gradeCounts[c.grade]||0) + 1);
+  ['레전드','에픽','레어','노말'].forEach(g => {
+    if (!gradeCounts[g]) return;
+    const span = document.createElement('span');
+    span.className = `card-grade grade-${g}`;
+    span.textContent = `${g} ${gradeCounts[g]}`;
+    summary.appendChild(span);
+  });
+}
+
+function dropMilkIcon(amount) {
+  const stage = document.getElementById('farm-stage');
+  if (stage.querySelectorAll('.milk-drop-icon').length >= 5) return;
+  const icon = document.createElement('div');
+  icon.className = 'milk-drop-icon';
+  icon.textContent = '🥛';
+  icon.dataset.amount = amount;
+  icon.style.left = (10 + Math.random() * 75) + '%';
+  icon.style.top  = (10 + Math.random() * 60) + '%';
+  icon.onclick = async (e) => {
+    icon.style.animation = 'milkCollect .3s ease forwards';
+    setTimeout(() => icon.remove(), 300);
+    try {
+      const data = await API.post('/farm/collect');
+      updateMilkUI(data.total_milk);
+      if (data.collected > 0) toast(`🥛 +${data.collected}`);
+    } catch(e) {}
+  };
+  stage.appendChild(icon);
+}
+
+async function loadFarm() {
+  try {
+    const [collData, cardData] = await Promise.all([
+      API.get('/farm/status'),
+      API.get('/cards/collection'),
+    ]);
+    updateMilkUI(collData.milk);
+    renderFarm(cardData.cards);
+
+    // 우유가 쌓였으면 드랍 아이콘 표시
+    if (collData.milk > 0 && cardData.cards.length > 0) {
+      dropMilkIcon(1);
+      setTimeout(() => dropMilkIcon(1), 3000);
+    }
+  } catch(e) {}
+}
+
+// 신규 유저 10연속 뽑기
+async function startNewUserGacha() {
+  document.getElementById('new-user-start-btn').style.display = 'none';
+  try {
+    const data = await API.post('/cards/draw/new-user');
+    localStorage.setItem('is_new_user', '0');
+    const container = document.getElementById('new-user-gacha-container');
+    gachaScene = new GachaScene('new-user-gacha-container');
+    gachaScene.startMulti(data.cards, () => {
+      document.getElementById('new-user-overlay').style.display = 'none';
+      loadFarm();
+    });
+    // 첫 짜기 자동 연결
+    gachaScene._setupNextBtn = function() {
+      const stage = document.getElementById('gs-stage');
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary btn-full';
+      btn.style.marginTop = '8px';
+      btn.id = 'gs-next';
+      btn.style.display = 'none';
+      btn.onclick = () => this._nextCard();
+      stage.appendChild(btn);
+    };
+  } catch(e) { toast(e.message); }
+}
+
+// 배틀 결과 확인
+async function checkBattleResult() {
+  try {
+    const data = await API.get('/battle/result/unread');
+    if (!data.has_result) return;
+    location.href = `/battle.html?result=${data.log_id}`;
+  } catch(e) {}
+}
+
+(async () => {
+  // 신규 유저 확인
+  if (API.isNewUser()) {
+    document.getElementById('new-user-overlay').style.display = 'flex';
+  } else {
+    await checkBattleResult();
+  }
+  await loadFarm();
+
+  // 30초마다 우유 드랍 아이콘
+  setInterval(() => {
+    if (farmCards.length > 0) dropMilkIcon(1);
+  }, 30000);
+})();
+</script>
+</body>
+</html>

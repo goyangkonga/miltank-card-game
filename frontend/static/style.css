@@ -1,0 +1,88 @@
+:root {
+  --green: #1D9E75; --green-light: #EAF3DE; --green-dark: #085041;
+  --amber: #BA7517; --amber-light: #FAEEDA;
+  --red: #A32D2D;   --red-light: #FCEBEB;
+  --gray: #888780;  --gray-light: #F1EFE8;
+  --bg: #f5f3ee; --card-bg: #fff;
+  --text: #2d2d2a; --text-sub: #5f5e5a;
+  --border: rgba(0,0,0,0.1);
+  --radius: 12px; --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+.page { max-width: 480px; margin: 0 auto; min-height: 100vh; padding: 0 0 80px; }
+
+/* HUD */
+.hud { display: flex; align-items: center; justify-content: space-between;
+       padding: 12px 16px; background: var(--card-bg); border-bottom: 0.5px solid var(--border);
+       position: sticky; top: 0; z-index: 100; }
+.hud-title { font-size: 15px; font-weight: 600; }
+.hud-milk { font-size: 13px; color: var(--amber); font-weight: 500; }
+
+/* 바텀 네비 */
+.nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+       width: 100%; max-width: 480px;
+       display: flex; background: var(--card-bg);
+       border-top: 0.5px solid var(--border); z-index: 100; }
+.nav a { flex: 1; display: flex; flex-direction: column; align-items: center;
+         padding: 8px 0; font-size: 10px; color: var(--text-sub);
+         text-decoration: none; gap: 3px; }
+.nav a.active { color: var(--green); }
+.nav a svg { width: 22px; height: 22px; }
+
+/* 카드 */
+.card-item { background: var(--card-bg); border-radius: var(--radius);
+             border: 0.5px solid var(--border); overflow: hidden; }
+.card-img { width: 100%; aspect-ratio: 1; object-fit: contain; background: var(--gray-light); }
+.card-img-placeholder { width: 100%; aspect-ratio: 1; background: var(--gray-light);
+                         display: flex; align-items: center; justify-content: center;
+                         font-size: 40px; }
+.card-info { padding: 8px; }
+.card-name { font-size: 12px; font-weight: 500; }
+.card-grade { font-size: 10px; padding: 2px 6px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+.grade-노말   { background: var(--gray-light);  color: var(--gray); }
+.grade-레어   { background: #E6F1FB;             color: #185FA5; }
+.grade-에픽   { background: #EEEDFE;             color: #534AB7; }
+.grade-레전드 { background: var(--amber-light);  color: var(--amber); font-weight: 600; }
+
+/* 버튼 */
+.btn { display: inline-flex; align-items: center; justify-content: center;
+       padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px;
+       font-weight: 500; border: none; cursor: pointer; transition: opacity .15s; }
+.btn:active { opacity: .75; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-amber   { background: var(--amber); color: #fff; }
+.btn-red     { background: var(--red);   color: #fff; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-full    { width: 100%; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* 폼 */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; color: var(--text-sub); }
+.form-group input {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 14px; background: var(--card-bg); color: var(--text); outline: none; }
+.form-group input:focus { border-color: var(--green); }
+
+/* 토스트 */
+#toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+         background: #2d2d2a; color: #fff; padding: 8px 20px;
+         border-radius: 20px; font-size: 13px; opacity: 0;
+         transition: opacity .2s; z-index: 999; white-space: nowrap; }
+#toast.show { opacity: 1; }
+
+/* 로딩 스피너 */
+.spinner { width: 24px; height: 24px; border: 2px solid var(--border);
+           border-top-color: var(--green); border-radius: 50%;
+           animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 섹션 헤더 */
+.section-head { padding: 16px 16px 8px; font-size: 13px; font-weight: 600; color: var(--text-sub); }
+
+/* 그리드 */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 12px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 12px; }
