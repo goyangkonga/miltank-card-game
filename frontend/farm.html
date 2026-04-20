@@ -47,6 +47,30 @@
 .milk-bar-wrap{height:8px;background:#E6F1FB;border-radius:4px;overflow:hidden;margin:4px 0;}
 .milk-bar{height:100%;background:#378ADD;border-radius:4px;transition:width .4s ease;}
 
+/* 젖소 걷기 + 특수 동작 */
+@keyframes cowSpin720{
+  0%{transform:scaleX(1) rotate(0deg) scale(1)}
+  50%{transform:scaleX(-1) rotate(360deg) scale(1.2)}
+  100%{transform:scaleX(1) rotate(720deg) scale(1)}
+}
+@keyframes cowSuperJump{
+  0%,100%{bottom:var(--baseY)}
+  20%{bottom:calc(var(--baseY) + 80px) }
+  40%{bottom:calc(var(--baseY) + 40px)}
+  60%{bottom:calc(var(--baseY) + 100px)}
+  80%{bottom:calc(var(--baseY) + 20px)}
+}
+@keyframes cowDance{
+  0%,100%{transform:scaleX(var(--fs,1)) rotate(0deg) scale(1)}
+  20%{transform:scaleX(var(--fs,1)) rotate(-15deg) scale(1.1)}
+  40%{transform:scaleX(var(--fs,1)) rotate(15deg) scale(0.9)}
+  60%{transform:scaleX(var(--fs,1)) rotate(-10deg) scale(1.1)}
+  80%{transform:scaleX(var(--fs,1)) rotate(10deg) scale(0.95)}
+}
+@keyframes cowRoll{
+  0%{transform:scaleX(1) rotate(0deg)}
+  100%{transform:scaleX(1) rotate(360deg)}
+}
 /* 젖소 걷기 */
 @keyframes cowWalkL{
   0%{left:var(--startX);transform:scaleX(-1)}
@@ -116,6 +140,15 @@
     <img id="farm-bg-img" src="/images/farm-bg.png" style="display:none;"
          onload="this.style.display='block';document.getElementById('farm-bg-fallback').style.display='none';"
          onerror="this.style.display='none';">
+    <!-- 전체수거 버튼 -->
+    <button id="btn-collect-all" onclick="collectAll()" style="
+      position:absolute;bottom:8px;right:8px;z-index:20;
+      background:rgba(255,255,255,0.92);border:1.5px solid #378ADD;
+      border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;
+      color:#185FA5;cursor:pointer;display:none;
+      box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+      🥛 전체 수거
+    </button>
     <div class="empty-farm" id="farm-empty" style="display:none;">
       <div style="font-size:40px;">🌱</div>
       <div style="font-size:14px;font-weight:500;">젖소가 없어요!</div>
@@ -201,6 +234,9 @@ function renderFarm(cards) {
     { bottom: 48, size: 44 },  // 뒷줄
   ];
 
+  // 특수동작 목록
+  const specialMoves = ['spin720','superJump','dance','normal','normal','normal'];
+
   show.forEach((card, i) => {
     const img = document.createElement('img');
     img.className = 'farm-cow-walk';
@@ -209,13 +245,24 @@ function renderFarm(cards) {
 
     const row = rows[i % rows.length];
     const size = row.size;
-    // 시작/끝 위치 랜덤 (좌우)
     const goRight = Math.random() > 0.5;
-    const startX = goRight ? -(size/2) + 'px' : (100 - size/4) + '%';
-    const endX   = goRight ? (100 - size/4) + '%' : -(size/2) + 'px';
+    const startX = goRight ? -(size/2) + 'px' : '100%';
+    const endX   = goRight ? '100%' : -(size/2) + 'px';
     const baseY  = row.bottom + (Math.random() - 0.5) * 8;
-    const dur    = 6 + Math.random() * 8; // 6~14초로 한 바퀴
-    const delay  = -(Math.random() * dur); // 랜덤 시작 위치
+    const walkDur = 7 + Math.random() * 8;
+    const walkDelay = -(Math.random() * walkDur);
+
+    // 특수동작 - 각 소마다 랜덤
+    const special = specialMoves[i % specialMoves.length];
+    const specialDelay = 2 + Math.random() * 6;
+    let specialAnim = '';
+    if (special === 'spin720') {
+      specialAnim = `, cowSpin720 1.2s ease-in-out ${specialDelay}s infinite`;
+    } else if (special === 'superJump') {
+      specialAnim = `, cowSuperJump 2s ease-in-out ${specialDelay}s infinite`;
+    } else if (special === 'dance') {
+      specialAnim = `, cowDance 1.5s ease-in-out ${specialDelay}s infinite`;
+    }
 
     img.style.cssText = `
       position:absolute;
@@ -226,9 +273,11 @@ function renderFarm(cards) {
       --startX:${startX};
       --endX:${endX};
       --baseY:${baseY}%;
+      --fs:${goRight ? 1 : -1};
       animation:
-        ${goRight ? 'cowWalkR' : 'cowWalkL'} ${dur}s linear ${delay}s infinite,
-        cowBobStep ${0.5 + Math.random() * 0.3}s ease-in-out infinite;
+        ${goRight ? 'cowWalkR' : 'cowWalkL'} ${walkDur}s linear ${walkDelay}s infinite,
+        cowBobStep ${0.5 + Math.random() * 0.3}s ease-in-out infinite
+        ${specialAnim};
     `;
     stage.appendChild(img);
   });
@@ -289,8 +338,31 @@ function dropMilkIcon(amount) {
       updateMilkUI(data.total_milk);
       if (data.collected > 0) toast(`🥛 +${data.collected}`);
     } catch(e) {}
+    // 아이콘 없으면 전체수거 버튼 숨김
+    setTimeout(() => {
+      const remaining = document.getElementById('farm-stage').querySelectorAll('.milk-drop-icon').length;
+      if (remaining === 0) document.getElementById('btn-collect-all').style.display = 'none';
+    }, 400);
   };
   stage.appendChild(icon);
+  // 아이콘 생기면 전체수거 버튼 표시
+  document.getElementById('btn-collect-all').style.display = 'block';
+}
+
+async function collectAll() {
+  const stage = document.getElementById('farm-stage');
+  const icons = stage.querySelectorAll('.milk-drop-icon');
+  if (icons.length === 0) return;
+  icons.forEach(icon => {
+    icon.style.animation = 'milkCollect .3s ease forwards';
+    setTimeout(() => icon.remove(), 300);
+  });
+  document.getElementById('btn-collect-all').style.display = 'none';
+  try {
+    const data = await API.post('/farm/collect');
+    updateMilkUI(data.total_milk);
+    if (data.collected > 0) toast(`🥛 +${data.collected} 전체 수거!`);
+  } catch(e) {}
 }
 
 async function loadFarm() {

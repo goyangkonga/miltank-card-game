@@ -273,8 +273,6 @@ async function startDraw(type){
     setMilk(farm.milk);
     drawCards=data.cards;
     drawIdx=0;
-    localStorage.setItem('pending_cards', JSON.stringify(drawCards));
-    localStorage.setItem('pending_idx', '0');
     loadNextSqueeze();
   } catch(e){
     toast(typeof e.message==='string'?e.message:'뽑기 오류');
@@ -290,11 +288,7 @@ async function startDraw(type){
 function loadNextSqueeze(){
   // 로딩 팝업 닫기
   document.getElementById('pg-loading').style.display='none';
-  // localStorage 동기화
-  localStorage.setItem('pending_idx', String(drawIdx));
   if(drawIdx>=drawCards.length){
-    localStorage.removeItem('pending_cards');
-    localStorage.removeItem('pending_idx');
     goSelect(); return;
   }
   sqClicks=0; sqDone=false;
