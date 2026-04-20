@@ -8,8 +8,7 @@
 <style>
 #farm-stage {
   position:relative;width:100%;height:300px;overflow:hidden;
-  border-radius:0 0 16px 16px;
-  background:#a8d5b5;
+  border-radius:0 0 16px 16px;background:#a8d5b5;
 }
 #farm-bg-img {
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
@@ -21,7 +20,7 @@
 }
 .farm-cow {
   position:absolute;
-  width:72px;height:72px;object-fit:contain;
+  object-fit:contain;
   cursor:default;
   z-index:2;
   animation:farmBob var(--dur,2.5s) ease-in-out infinite;
@@ -83,14 +82,15 @@
     <div class="milk-bar-wrap">
       <div class="milk-bar" id="milk-bar" style="width:0%;"></div>
     </div>
-    <div style="font-size:11px;color:var(--text-sub);margin-top:6px;" id="milk-hint">농장의 우유 아이콘을 터치해서 수집하세요</div>
+    <div style="font-size:11px;color:var(--text-sub);margin-top:6px;">농장의 우유 아이콘을 터치해서 수집하세요</div>
   </div>
 
   <div style="margin:0 12px 12px;">
     <div class="section-head" style="padding:0 0 8px;">보유 젖소</div>
     <div id="card-summary" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
   </div>
-<nav class="nav">
+
+  <nav class="nav">
     <a href="/farm.html" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>농장
     </a>
@@ -108,7 +108,6 @@
 <div id="toast"></div>
 
 <script src="/static/api.js"></script>
-<script src="/static/gacha.js"></script>
 <script>
 if (!API.isLoggedIn()) location.href = '/';
 
@@ -122,8 +121,8 @@ function toast(msg, dur=2000) {
 
 function updateMilkUI(val) {
   localStorage.setItem('milk', val);
-  document.getElementById('hud-milk').textContent = `🥛 ${val.toLocaleString()}`;
-  document.getElementById('milk-text').textContent = `${val.toLocaleString()} / 9,999`;
+  document.getElementById('hud-milk').textContent = `🥛 ${Number(val).toLocaleString()}`;
+  document.getElementById('milk-text').textContent = `${Number(val).toLocaleString()} / 9,999`;
   document.getElementById('milk-bar').style.width = Math.min(100, (val/9999)*100) + '%';
 }
 
@@ -132,13 +131,14 @@ function renderFarm(cards) {
   const stage = document.getElementById('farm-stage');
   stage.querySelectorAll('.farm-cow').forEach(e => e.remove());
 
-  if (!cards.length) {
+  if (!cards || !cards.length) {
     document.getElementById('farm-empty').style.display = 'flex';
+    // 보유 젖소 요약도 초기화
+    document.getElementById('card-summary').innerHTML = '';
     return;
   }
   document.getElementById('farm-empty').style.display = 'none';
 
-  // 최대 15마리, 겹치지 않게 5열 3행으로 배치
   const show = cards.slice(0, 15);
   const cols = 5;
   const cellW = 100 / cols;
@@ -149,24 +149,21 @@ function renderFarm(cards) {
     img.src = `/images/cards/${String(card.id).padStart(3,'0')}.png`;
     img.onerror = () => { img.style.display='none'; };
 
-    // 열 기준 배치 + 약간의 랜덤 오프셋
     const col = i % cols;
     const row = Math.floor(i / cols);
     const baseLeft = col * cellW + cellW * 0.1;
     const jitterX = (Math.random() - 0.5) * (cellW * 0.5);
     const left = Math.max(1, Math.min(90, baseLeft + jitterX));
 
-    // 행별 높이 — 앞줄/뒷줄 분리
-    const rowHeights = [55, 30, 10]; // bottom % 기준
+    const rowHeights = [55, 30, 10];
     const baseBottom = rowHeights[row] || 10;
     const jitterY = (Math.random() - 0.5) * 8;
     const bottom = baseBottom + jitterY;
 
-    // 크기 — 뒷줄일수록 작게
     const sizes = [72, 60, 50];
     const size = sizes[row] || 50;
-
     const flip = Math.random() > 0.5 ? -1 : 1;
+
     img.style.left = left + '%';
     img.style.bottom = bottom + '%';
     img.style.width = size + 'px';
@@ -177,7 +174,7 @@ function renderFarm(cards) {
     stage.appendChild(img);
   });
 
-  // 카드 요약
+  // 보유 젖소 요약
   const summary = document.getElementById('card-summary');
   summary.innerHTML = '';
   const gradeCounts = {};
@@ -197,7 +194,6 @@ function dropMilkIcon(amount) {
   const icon = document.createElement('div');
   icon.className = 'milk-drop-icon';
   icon.textContent = '🥛';
-  icon.dataset.amount = amount;
   icon.style.left = (10 + Math.random() * 75) + '%';
   icon.style.top  = (15 + Math.random() * 55) + '%';
   icon.onclick = async () => {
@@ -220,13 +216,13 @@ async function loadFarm() {
     ]);
     updateMilkUI(collData.milk);
     renderFarm(cardData.cards);
-    if (cardData.cards.length > 0) {
+    if (cardData.cards && cardData.cards.length > 0) {
       setTimeout(() => dropMilkIcon(1), 1000);
       setTimeout(() => dropMilkIcon(1), 5000);
     }
-  } catch(e) {}
-}
-
+  } catch(e) {
+    console.error('loadFarm 오류:', e);
+  }
 }
 
 let _farmTimerInterval = null;
@@ -278,14 +274,21 @@ async function checkBattleResult() {
   }
   await checkBattleResult();
   await loadFarm();
+  checkFreeTimerFarm();
 
-  // 페이지 포커스(다른 탭에서 돌아올 때)마다 농장 새로고침
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') loadFarm();
-  });
+  // 우유 드랍 주기
   setInterval(() => {
     if (farmCards.length > 0) dropMilkIcon(1);
   }, 30000);
+
+  // 다른 탭에서 돌아올 때 새로고침
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadFarm();
+  });
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) loadFarm();
+  });
+  window.addEventListener('focus', () => loadFarm());
 })();
 </script>
 </body>
