@@ -278,6 +278,11 @@ async function checkBattleResult() {
   }
   await checkBattleResult();
   await loadFarm();
+
+  // 페이지 포커스(다른 탭에서 돌아올 때)마다 농장 새로고침
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadFarm();
+  });
   setInterval(() => {
     if (farmCards.length > 0) dropMilkIcon(1);
   }, 30000);
