@@ -74,6 +74,7 @@ def confirm_draw(body: dict, user=Depends(get_current_user)):
         raise HTTPException(400, "존재하지 않는 카드")
     db = get_db()
     add_cards_to_user(user["id"], [card], db)
+    db.commit()
     db.close()
     return {"ok": True, "card": card}
 
