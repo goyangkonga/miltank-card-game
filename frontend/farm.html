@@ -349,6 +349,22 @@ function dropMilkIcon(amount) {
   document.getElementById('btn-collect-all').style.display = 'block';
 }
 
+async function checkMilkPending() {
+  // 실제 pending 우유 확인
+  try {
+    const data = await API.post('/farm/collect');
+    updateMilkUI(data.total_milk);
+    if (data.collected > 0) {
+      // 쌓인 우유만큼 아이콘 표시 (최대 5개)
+      const iconCount = Math.min(5, Math.ceil(data.collected / 5) + 1);
+      for (let i = 0; i < iconCount; i++) {
+        setTimeout(() => dropMilkIcon(1), i * 300);
+      }
+      toast(`🥛 우유 ${data.collected}개가 쌓여있어요!`);
+    }
+  } catch(e) {}
+}
+
 async function collectAll() {
   const stage = document.getElementById('farm-stage');
   const icons = stage.querySelectorAll('.milk-drop-icon');
@@ -373,9 +389,9 @@ async function loadFarm() {
     ]);
     updateMilkUI(collData.milk);
     renderFarm(cardData.cards);
+    // 우유가 쌓였는지 서버에 확인 후 아이콘 표시
     if (cardData.cards && cardData.cards.length > 0) {
-      setTimeout(() => dropMilkIcon(1), 1000);
-      setTimeout(() => dropMilkIcon(1), 5000);
+      checkMilkPending();
     }
   } catch(e) {
     console.error('loadFarm 오류:', e);
@@ -434,9 +450,10 @@ async function checkBattleResult() {
   checkFreeTimerFarm();
 
   // 우유 드랍 주기
+  // 2분마다 우유 확인
   setInterval(() => {
-    if (farmCards.length > 0) dropMilkIcon(1);
-  }, 30000);
+    if (farmCards.length > 0) checkMilkPending();
+  }, 120000);
 
   // 다른 탭에서 돌아올 때 새로고침
   document.addEventListener('visibilitychange', () => {
