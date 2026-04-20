@@ -18,7 +18,10 @@
 <div class="page">
   <div class="hud">
     <div class="hud-title">📋 컬렉션</div>
-    <div class="hud-milk" id="hud-milk">🥛 0</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hud-milk" id="hud-milk">🥛 0</div>
+      <button onclick="API.logout()" style="background:none;border:0.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-sub);padding:4px 8px;cursor:pointer;">로그아웃</button>
+    </div>
   </div>
 
   <div class="filter-row">
@@ -143,6 +146,42 @@ async function loadCollection() {
 }
 
 loadCollection();
+</script>
+
+<!-- 카드 상세 모달 -->
+<div id="card-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--card-bg);border-radius:16px;max-width:340px;width:100%;overflow:hidden;position:relative;">
+    <button onclick="document.getElementById('card-detail-modal').style.display='none'" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);z-index:1;">✕</button>
+    <img id="detail-img" style="width:100%;aspect-ratio:1;object-fit:contain;background:var(--gray-light);" src="">
+    <div style="padding:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div id="detail-name" style="font-size:17px;font-weight:700;flex:1;"></div>
+        <span id="detail-grade" style="font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600;"></span>
+      </div>
+      <div id="detail-desc" style="font-size:13px;color:var(--text-sub);line-height:1.7;margin-bottom:12px;"></div>
+      <div id="detail-copies" style="font-size:12px;color:var(--text-sub);"></div>
+    </div>
+  </div>
+</div>
+<script>
+function showCardDetail(card) {
+  const gradeColors = {
+    '노말':'#888780','레어':'#185FA5','에픽':'#534AB7','레전드':'#854F0B'
+  };
+  const gradeBg = {
+    '노말':'#F1EFE8','레어':'#E6F1FB','에픽':'#EEEDFE','레전드':'#FAEEDA'
+  };
+  document.getElementById('detail-img').src = `/images/cards/${String(card.id).padStart(3,'0')}.png`;
+  document.getElementById('detail-name').textContent = card.name;
+  const badge = document.getElementById('detail-grade');
+  badge.textContent = card.grade;
+  badge.style.background = gradeBg[card.grade]||'#F1EFE8';
+  badge.style.color = gradeColors[card.grade]||'#888780';
+  badge.style.border = `1px solid ${gradeColors[card.grade]||'#888780'}`;
+  document.getElementById('detail-desc').textContent = card.description || '묘사 없음';
+  document.getElementById('detail-copies').textContent = `보유 수량: ${card.copies}장`;
+  document.getElementById('card-detail-modal').style.display = 'flex';
+}
 </script>
 </body>
 </html>

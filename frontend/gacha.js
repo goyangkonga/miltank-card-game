@@ -246,10 +246,11 @@ class GachaScene {
       if (!nextBtn) return;
       const isLast = this.currentIdx >= this.pendingCards.length - 1;
       if (this.pendingCards.length === 1) {
-        nextBtn.textContent = '확인';
+        nextBtn.textContent = '확인 →';
         nextBtn.style.display = 'block';
         nextBtn.style.animation = 'fadeInUp .4s ease .5s both';
-        nextBtn.onclick = () => this.onDone && this.onDone();
+        const _cb = this.onDone;
+        nextBtn.onclick = () => { if(_cb) _cb(); };
       } else {
         nextBtn.textContent = isLast ? '✨ 전체 결과 보기' : `다음 카드 (${this.currentIdx+2}/${this.pendingCards.length}) →`;
         nextBtn.style.display = 'block';
@@ -300,6 +301,8 @@ class GachaScene {
     this.clicks = 0;
     this.done = false;
     this._build();
+    // 단일 뽑기: gs-next "확인" 버튼 → onDone 직접 호출
+    // _reveal() 내부에서 pendingCards.length===1 이면 onDone 연결됨
   }
 
   startMulti(cards, onDone) {
