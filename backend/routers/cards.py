@@ -34,7 +34,7 @@ def free_draw(user=Depends(get_current_user)):
         raise HTTPException(400, detail={"message": "아직 쿨다운 중", "remaining_seconds": remaining})
     cards = draw_cards(1)
     db = get_db()
-    add_cards_to_user(user["id"], cards, db)
+    # 쿨다운 갱신만 — 카드 저장은 /draw/confirm 으로
     db.execute("UPDATE users SET last_free_draw=? WHERE id=?",
                (datetime.now(timezone.utc).isoformat(), user["id"]))
     db.commit(); db.close()
@@ -46,7 +46,7 @@ def milk_draw(user=Depends(get_current_user)):
         raise HTTPException(400, f"우유 부족 ({user['milk']}/{MILK_GACHA_COST})")
     cards = draw_cards(1)
     db = get_db()
-    add_cards_to_user(user["id"], cards, db)
+    # 우유 차감만 — 카드 저장은 /draw/confirm 으로
     db.execute("UPDATE users SET milk=milk-? WHERE id=?", (MILK_GACHA_COST, user["id"]))
     db.commit(); db.close()
     return {"cards": cards, "type": "milk"}
@@ -55,12 +55,27 @@ def milk_draw(user=Depends(get_current_user)):
 def new_user_draw(user=Depends(get_current_user)):
     if not user["is_new_user"]:
         raise HTTPException(400, "이미 신규 혜택을 받았습니다")
+    # 카드 데이터만 반환 — 저장은 /draw/confirm 으로 한 장씩 처리
     cards = draw_cards(10)
     db = get_db()
-    add_cards_to_user(user["id"], cards, db)
     db.execute("UPDATE users SET is_new_user=0 WHERE id=?", (user["id"],))
     db.commit(); db.close()
     return {"cards": cards, "type": "new_user"}
+
+@router.post("/draw/confirm")
+def confirm_draw(body: dict, user=Depends(get_current_user)):
+    """짜기 완료 후 카드 1장 저장"""
+    from pydantic import BaseModel
+    card_id = body.get("card_id")
+    if not card_id:
+        raise HTTPException(400, "card_id 필요")
+    card = _card_info(card_id)
+    if not card:
+        raise HTTPException(400, "존재하지 않는 카드")
+    db = get_db()
+    add_cards_to_user(user["id"], [card], db)
+    db.close()
+    return {"ok": True, "card": card}
 
 @router.get("/draw/free/status")
 def free_draw_status(user=Depends(get_current_user)):
