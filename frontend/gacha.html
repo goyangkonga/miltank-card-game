@@ -42,7 +42,7 @@
         <div><div style="font-size:15px;font-weight:700;color:#412402;">신규 유저 혜택!</div>
         <div style="font-size:11px;color:#854F0B;">젖을 짜서 10마리를 뽑아보세요!</div></div>
       </div>
-      <button class="btn btn-amber btn-full" onclick="startDraw('new-user')">10연속 무료뽑기 🎉</button>
+      <button id="btn-new-user" class="btn btn-amber btn-full" onclick="startNewUser()">10연속 무료뽑기 🎉</button>
     </div>
 
     <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
@@ -213,6 +213,19 @@ async function checkFreeStatus(){
   }catch(e){}
 }
 
+// ── 신규뽑기 전용 (버튼 로딩 처리) ──
+async function startNewUser(){
+  const btn = document.getElementById('btn-new-user');
+  btn.disabled = true;
+  btn.textContent = '뽑기 준비 중...';
+  await startDraw('new-user');
+  // 실패했을 경우 버튼 복구
+  if(document.getElementById('new-user-card').style.display !== 'none'){
+    btn.disabled = false;
+    btn.textContent = '10연속 무료뽑기 🎉';
+  }
+}
+
 // ── 뽑기 시작 ──
 async function startDraw(type){
   try{
@@ -224,6 +237,7 @@ async function startDraw(type){
       data=await API.post('/cards/draw/milk');
     } else if(type==='new-user'){
       data=await API.post('/cards/draw/new-user');
+      // 성공 후에만 신규 상태 해제
       localStorage.setItem('is_new_user','0');
       document.getElementById('new-user-card').style.display='none';
     }
@@ -232,7 +246,14 @@ async function startDraw(type){
     drawCards=data.cards;
     drawIdx=0;
     loadNextSqueeze();
-  } catch(e){ toast(typeof e.message==='string'?e.message:'뽑기 오류'); }
+  } catch(e){
+    toast(typeof e.message==='string'?e.message:'뽑기 오류');
+    // 신규뽑기 실패 시 롤백
+    if(type==='new-user'){
+      localStorage.setItem('is_new_user','1');
+      document.getElementById('new-user-card').style.display='block';
+    }
+  }
 }
 
 // ── 짜기 초기화 ──
