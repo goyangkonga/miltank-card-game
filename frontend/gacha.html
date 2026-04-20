@@ -6,14 +6,27 @@
 <title>뽑기 — 젖소 배틀</title>
 <link rel="stylesheet" href="/static/style.css">
 <style>
+@keyframes cowBob    {0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes cowJump   {0%,100%{transform:translateY(0)}30%{transform:translateY(-22px)}60%{transform:translateY(-8px)}}
+@keyframes squirt    {0%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-180%) scale(.2)}}
+@keyframes popIn     {0%{opacity:0;transform:scale(0.2) rotateY(180deg)}55%{opacity:1;transform:scale(1.07) rotateY(-5deg)}80%{transform:scale(0.97)}100%{opacity:1;transform:scale(1) rotateY(0)}}
+@keyframes cowSpin   {0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes cowBounce {0%,100%{transform:translateY(0)}20%{transform:translateY(-18px) rotate(-2deg)}40%{transform:translateY(2px)}60%{transform:translateY(-12px) rotate(2deg)}80%{transform:translateY(1px)}}
+@keyframes fadeIn    {from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ptFly     {0%{opacity:1;transform:translate(var(--sx),var(--sy)) scale(1)}100%{opacity:0;transform:translate(var(--ex),var(--ey)) scale(0)}}
+@keyframes overlayIn {from{opacity:0}to{opacity:1}}
+@keyframes shake     {0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
 .timer-box{background:var(--gray-light);border-radius:8px;padding:6px 12px;text-align:center;min-width:50px;}
 .timer-num{font-size:24px;font-weight:700;color:var(--text-primary);line-height:1;}
 .timer-label{font-size:9px;color:var(--text-sub);margin-top:2px;}
 </style>
 </head>
 <body>
-<div class="page" id="main-page">
+
+<!-- 선택 화면 -->
+<div id="pg-select" class="page">
   <div class="hud">
     <div class="hud-title">🐄 카드 뽑기</div>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -21,29 +34,24 @@
       <button onclick="API.logout()" style="background:none;border:0.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-sub);padding:4px 8px;cursor:pointer;">로그아웃</button>
     </div>
   </div>
-
   <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 
-    <!-- 신규 유저 -->
     <div id="new-user-card" style="display:none;background:linear-gradient(135deg,#FAEEDA,#FFF8EC);border-radius:var(--radius);border:1.5px solid #BA7517;padding:16px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
         <span style="font-size:28px;">🎁</span>
-        <div>
-          <div style="font-size:15px;font-weight:700;color:#412402;">신규 유저 혜택!</div>
-          <div style="font-size:11px;color:#854F0B;">10연속 뽑기를 무료로 드립니다</div>
-        </div>
+        <div><div style="font-size:15px;font-weight:700;color:#412402;">신규 유저 혜택!</div>
+        <div style="font-size:11px;color:#854F0B;">젖을 짜서 10마리를 뽑아보세요!</div></div>
       </div>
-      <button class="btn btn-amber btn-full" onclick="doNewUserDraw()">10연속 무료뽑기 받기 🎉</button>
+      <button class="btn btn-amber btn-full" onclick="startDraw('new-user')">10연속 무료뽑기 🎉</button>
     </div>
 
-    <!-- 무료 뽑기 -->
     <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <div style="font-size:15px;font-weight:600;">무료 뽑기</div>
         <span id="free-badge" style="display:none;font-size:11px;padding:2px 8px;border-radius:20px;background:#EAF3DE;color:#27500A;border:0.5px solid #3B6D11;">뽑기 가능!</span>
       </div>
       <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">10분마다 1회 무료!</div>
-      <div id="free-timer-wrap" style="display:none;margin-bottom:12px;">
+      <div id="timer-wrap" style="display:none;margin-bottom:12px;">
         <div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;">다음 무료뽑기까지</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <div class="timer-box"><div class="timer-num" id="timer-m">00</div><div class="timer-label">분</div></div>
@@ -52,17 +60,15 @@
         </div>
       </div>
       <div id="free-ready-msg" style="display:none;font-size:13px;color:#27500A;font-weight:500;margin-bottom:10px;">✅ 지금 바로 뽑기 가능해요!</div>
-      <button id="btn-free" class="btn btn-primary btn-full" onclick="doFreeDraw()">무료 뽑기</button>
+      <button id="btn-free" class="btn btn-primary btn-full" onclick="startDraw('free')">무료 뽑기</button>
     </div>
 
-    <!-- 우유 뽑기 -->
     <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
       <div style="font-size:15px;font-weight:600;margin-bottom:4px;">우유 뽑기</div>
       <div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">우유 100개 소모</div>
-      <button id="btn-milk" class="btn btn-amber btn-full" onclick="doMilkDraw()">🥛 100개로 뽑기</button>
+      <button id="btn-milk" class="btn btn-amber btn-full" onclick="startDraw('milk')">🥛 100개로 뽑기</button>
     </div>
 
-    <!-- 확률표 -->
     <div style="background:var(--card-bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:16px;">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;">뽑기 확률</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -73,7 +79,6 @@
       </div>
     </div>
   </div>
-
   <nav class="nav">
     <a href="/farm.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>농장</a>
     <a href="/gacha.html" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>뽑기</a>
@@ -82,148 +87,300 @@
   </nav>
 </div>
 
-<!-- 짜기 화면 (main-page와 분리) -->
-<div id="squeeze-page" style="display:none;min-height:100vh;background:var(--bg);">
+<!-- 짜기 화면 -->
+<div id="pg-squeeze" style="display:none;min-height:100vh;background:var(--bg);">
   <div class="hud">
     <div style="display:flex;align-items:center;gap:8px;">
-      <button onclick="cancelSqueeze()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;">←</button>
+      <button onclick="goSelect()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;">←</button>
       <div class="hud-title" id="squeeze-title">뽑기</div>
     </div>
     <div class="hud-milk" id="hud-milk2">🥛 0</div>
   </div>
-  <div id="gacha-container"></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 16px;">
+    <div id="sq-progress" style="font-size:13px;color:var(--text-sub);font-weight:500;min-height:20px;"></div>
+    <div id="sq-cow-wrap" style="position:relative;cursor:pointer;user-select:none;display:flex;flex-direction:column;align-items:center;gap:6px;" onclick="doSqueeze()">
+      <div id="sq-cow" style="font-size:130px;line-height:1;animation:cowBob 1.8s ease-in-out infinite;transition:transform .12s;">🐄</div>
+      <div style="font-size:13px;color:var(--text-sub);font-weight:500;">꾹 눌러서 젖을 짜세요!</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div style="position:relative;width:80px;height:130px;">
+        <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:30px;height:14px;background:#378ADD;border-radius:4px 4px 0 0;"></div>
+        <div style="position:absolute;top:-26px;left:50%;transform:translateX(-50%);width:24px;height:16px;border:2.5px solid #85B7EB;border-top:none;background:#fff;border-radius:0 0 4px 4px;"></div>
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:100px;border:2.5px solid #85B7EB;border-radius:6px 6px 12px 12px;background:#fff;overflow:hidden;">
+          <div id="sq-milk" style="position:absolute;bottom:0;left:0;right:0;height:0%;background:#E6F1FB;transition:height .25s cubic-bezier(.34,1.56,.64,1);border-radius:0 0 9px 9px;">
+            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:#B5D4F4;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+      <div id="sq-pct" style="font-size:15px;font-weight:600;color:#185FA5;">0%</div>
+      <div id="sq-cnt" style="font-size:12px;color:var(--text-sub);">0 / 10</div>
+    </div>
+  </div>
+</div>
+
+<!-- 카드 공개 팝업 -->
+<div id="pg-popup" style="display:none;position:fixed;inset:0;z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:hidden;">
+  <div id="popup-pt" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;"></div>
+  <button onclick="closePopup()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:28px;color:rgba(255,255,255,.5);cursor:pointer;z-index:10;">✕</button>
+  <img id="popup-img" style="width:min(88vw,420px);height:min(88vw,420px);object-fit:contain;" src="">
+  <div id="popup-grade" style="font-size:15px;font-weight:800;padding:5px 20px;border-radius:20px;margin-top:12px;"></div>
+  <div id="popup-name" style="font-size:20px;font-weight:700;color:#fff;text-align:center;margin-top:8px;animation:fadeIn .4s ease .6s both;"></div>
+  <div id="popup-desc" style="font-size:12px;color:rgba(255,255,255,.75);text-align:center;line-height:1.65;max-width:min(85vw,380px);margin-top:8px;animation:fadeIn .4s ease .7s both;"></div>
+  <button id="popup-btn" style="margin-top:20px;padding:13px 36px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;animation:fadeIn .4s ease .85s both;min-width:200px;"></button>
 </div>
 
 <div id="toast"></div>
-
 <script src="/static/api.js"></script>
-<script src="/static/gacha.js"></script>
 <script>
 if (!API.isLoggedIn()) location.href = '/';
 
+// ── 상태 ──
 let milk = 0;
-let _timerInterval = null;
-let _timerRemaining = 0;
+let drawCards = [];   // 현재 뽑기 카드 배열
+let drawIdx  = 0;     // 현재 카드 인덱스
+let sqClicks = 0;
+let sqDone   = false;
+let timerInterval = null;
 
-function toast(msg, dur=2500) {
-  let text = msg;
-  if (typeof msg === 'object') text = msg?.detail || msg?.message || JSON.stringify(msg);
-  const el = document.getElementById('toast');
-  el.textContent = text; el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), dur);
-}
+const GRADE = {
+  '노말':   {bg:'#12100e',border:'#B4B2A9',btn:'#B4B2A9',btnTxt:'#2C2C2A'},
+  '레어':   {bg:'#030f1e',border:'#378ADD',btn:'#378ADD',btnTxt:'#fff'},
+  '에픽':   {bg:'#08051a',border:'#7F77DD',btn:'#7F77DD',btnTxt:'#fff'},
+  '레전드': {bg:'#0a0600',border:'#FFD700',btn:'#FFD700',btnTxt:'#1a0a00'},
+};
+const PT_COLORS = {
+  '노말':['#B4B2A9','#D3D1C7'],'레어':['#378ADD','#85B7EB','#fff'],
+  '에픽':['#7F77DD','#AFA9EC','#fff'],'레전드':['#FFD700','#EF9F27','#FAC775','#fff'],
+};
 
-function updateMilkHUD(val) {
-  milk = val;
-  localStorage.setItem('milk', val);
-  document.getElementById('hud-milk').textContent  = `🥛 ${val.toLocaleString()}`;
-  document.getElementById('hud-milk2').textContent = `🥛 ${val.toLocaleString()}`;
-  document.getElementById('btn-milk').disabled = val < 100;
+function toast(msg,dur=2500){
+  let t=msg; if(typeof msg==='object') t=msg?.detail||msg?.message||JSON.stringify(msg);
+  const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),dur);
 }
-
-// ── 화면 전환 ──
-function showSqueeze(title) {
-  document.getElementById('main-page').style.display = 'none';
-  document.getElementById('squeeze-page').style.display = 'block';
-  document.getElementById('squeeze-title').textContent = title || '뽑기';
+function setMilk(v){
+  milk=v; localStorage.setItem('milk',v);
+  document.getElementById('hud-milk').textContent=`🥛 ${Number(v).toLocaleString()}`;
+  document.getElementById('hud-milk2').textContent=`🥛 ${Number(v).toLocaleString()}`;
+  document.getElementById('btn-milk').disabled=v<100;
 }
-function hideSqueeze() {
-  document.getElementById('squeeze-page').style.display = 'none';
-  document.getElementById('main-page').style.display = 'block';
-  document.getElementById('card-popup-overlay')?.remove();
+function goSelect(){
+  document.getElementById('pg-select').style.display='block';
+  document.getElementById('pg-squeeze').style.display='none';
+  document.getElementById('pg-popup').style.display='none';
+  checkFreeStatus();
 }
-function cancelSqueeze() { hideSqueeze(); checkFreeStatus(); }
+function goSqueeze(title){
+  document.getElementById('pg-select').style.display='none';
+  document.getElementById('pg-squeeze').style.display='block';
+  document.getElementById('squeeze-title').textContent=title||'뽑기';
+}
 
 // ── 타이머 ──
-function _startCountdown(secs) {
-  clearInterval(_timerInterval);
-  _timerRemaining = secs;
-  document.getElementById('btn-free').disabled = true;
-  document.getElementById('free-timer-wrap').style.display = 'block';
-  document.getElementById('free-ready-msg').style.display = 'none';
-  document.getElementById('free-badge').style.display = 'none';
-  const pad = n => String(n).padStart(2,'0');
-  const tick = () => {
-    document.getElementById('timer-m').textContent = pad(Math.floor(_timerRemaining/60));
-    document.getElementById('timer-s').textContent = pad(_timerRemaining%60);
-    if (_timerRemaining <= 0) {
-      clearInterval(_timerInterval);
-      document.getElementById('btn-free').disabled = false;
-      document.getElementById('free-timer-wrap').style.display = 'none';
-      document.getElementById('free-ready-msg').style.display = 'block';
-      document.getElementById('free-badge').style.display = 'inline-block';
-      toast('🎉 무료 뽑기가 가능해요!');
+function startTimer(secs){
+  clearInterval(timerInterval);
+  let s=secs;
+  document.getElementById('btn-free').disabled=true;
+  document.getElementById('timer-wrap').style.display='block';
+  document.getElementById('free-ready-msg').style.display='none';
+  document.getElementById('free-badge').style.display='none';
+  const pad=n=>String(n).padStart(2,'0');
+  const tick=()=>{
+    document.getElementById('timer-m').textContent=pad(Math.floor(s/60));
+    document.getElementById('timer-s').textContent=pad(s%60);
+    if(s<=0){
+      clearInterval(timerInterval);
+      document.getElementById('btn-free').disabled=false;
+      document.getElementById('timer-wrap').style.display='none';
+      document.getElementById('free-ready-msg').style.display='block';
+      document.getElementById('free-badge').style.display='inline-block';
+      toast('🎉 무료 뽑기 가능해요!');
     }
-    _timerRemaining--;
+    s--;
   };
-  tick();
-  _timerInterval = setInterval(tick, 1000);
+  tick(); timerInterval=setInterval(tick,1000);
+}
+async function checkFreeStatus(){
+  try{
+    const d=await API.get('/cards/draw/free/status');
+    if(d.can_draw){
+      clearInterval(timerInterval);
+      document.getElementById('btn-free').disabled=false;
+      document.getElementById('timer-wrap').style.display='none';
+      document.getElementById('free-ready-msg').style.display='block';
+      document.getElementById('free-badge').style.display='inline-block';
+    } else { startTimer(d.remaining_seconds); }
+  }catch(e){}
 }
 
-async function checkFreeStatus() {
-  try {
-    const data = await API.get('/cards/draw/free/status');
-    if (data.can_draw) {
-      clearInterval(_timerInterval);
-      document.getElementById('btn-free').disabled = false;
-      document.getElementById('free-timer-wrap').style.display = 'none';
-      document.getElementById('free-ready-msg').style.display = 'block';
-      document.getElementById('free-badge').style.display = 'inline-block';
-    } else {
-      _startCountdown(data.remaining_seconds);
+// ── 뽑기 시작 ──
+async function startDraw(type){
+  try{
+    let data;
+    if(type==='free'){
+      data=await API.post('/cards/draw/free');
+    } else if(type==='milk'){
+      if(milk<100) return toast('우유가 부족합니다');
+      data=await API.post('/cards/draw/milk');
+    } else if(type==='new-user'){
+      data=await API.post('/cards/draw/new-user');
+      localStorage.setItem('is_new_user','0');
+      document.getElementById('new-user-card').style.display='none';
     }
-  } catch(e) {}
+    const farm=await API.get('/farm/status');
+    setMilk(farm.milk);
+    drawCards=data.cards;
+    drawIdx=0;
+    loadNextSqueeze();
+  } catch(e){ toast(typeof e.message==='string'?e.message:'뽑기 오류'); }
 }
 
-// ── 뽑기 실행 ──
-function runSqueeze(cards, title, onDone) {
-  showSqueeze(title);
-  // GachaScene 생성 (컨테이너 HTML 세팅)
-  gachaScene = new GachaScene('gacha-container');
-  // SqueezeManager 생성 후 scene 주입
-  squeezeManager = new SqueezeManager('gacha-container');
-  squeezeManager.scene = gachaScene;
-  // start()가 내부에서 _next()→setCard() 호출함
-  squeezeManager.start(cards, () => {
-    hideSqueeze();
-    if (onDone) onDone();
-  });
+// ── 짜기 초기화 ──
+function loadNextSqueeze(){
+  if(drawIdx>=drawCards.length){ goSelect(); return; }
+  sqClicks=0; sqDone=false;
+  const total=drawCards.length;
+  document.getElementById('sq-progress').textContent=total>1?`${drawIdx+1} / ${total}장 뽑기`:'';
+  document.getElementById('sq-milk').style.transition='none';
+  document.getElementById('sq-milk').style.height='0%';
+  setTimeout(()=>{ document.getElementById('sq-milk').style.transition='height .25s cubic-bezier(.34,1.56,.64,1)'; },50);
+  document.getElementById('sq-pct').textContent='0%';
+  document.getElementById('sq-pct').style.color='#185FA5';
+  document.getElementById('sq-cnt').textContent='0 / 10';
+  const cow=document.getElementById('sq-cow');
+  cow.style.animation='none'; void cow.offsetWidth;
+  cow.style.animation='cowBob 1.8s ease-in-out infinite';
+  goSqueeze(total>1?`🎁 ${total}연속 뽑기`:'무료 뽑기');
 }
 
-async function doFreeDraw() {
-  try {
-    const data = await API.post('/cards/draw/free');
-    const farm = await API.get('/farm/status');
-    updateMilkHUD(farm.milk);
-    runSqueeze(data.cards, '무료 뽑기', checkFreeStatus);
-  } catch(e) { toast(typeof e.message==='string'?e.message:'뽑기 실패'); }
+// ── 짜기 클릭 ──
+async function doSqueeze(){
+  if(sqDone) return;
+  sqClicks=Math.min(sqClicks+1,10);
+  const pct=Math.round(sqClicks/10*100);
+  document.getElementById('sq-milk').style.height=pct+'%';
+  document.getElementById('sq-pct').textContent=pct+'%';
+  document.getElementById('sq-cnt').textContent=`${sqClicks} / 10`;
+  // 눌리는 효과
+  const cow=document.getElementById('sq-cow');
+  cow.style.transform='scale(0.85)';
+  setTimeout(()=>cow.style.transform='',130);
+  // 물방울
+  const drop=document.createElement('div');
+  drop.textContent='💧';
+  drop.style.cssText=`position:absolute;font-size:20px;pointer-events:none;left:${20+Math.random()*60}%;top:${30+Math.random()*30}%;animation:squirt .5s ease forwards;`;
+  document.getElementById('sq-cow-wrap').appendChild(drop);
+  setTimeout(()=>drop.remove(),500);
+
+  if(sqClicks>=10){
+    sqDone=true;
+    document.getElementById('sq-pct').textContent='완료! 🎉';
+    document.getElementById('sq-pct').style.color='#27500A';
+    cow.style.animation='none'; void cow.offsetWidth;
+    cow.style.animation='cowJump .6s ease forwards';
+    // 카드 저장
+    const card=drawCards[drawIdx];
+    try{
+      await fetch('/cards/draw/confirm',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('token')}`},
+        body:JSON.stringify({card_id:card.id})
+      });
+    }catch(e){ console.error('confirm 실패',e); }
+    // 500ms 후 팝업
+    setTimeout(()=>showPopup(card),500);
+  }
 }
 
-async function doMilkDraw() {
-  if (milk < 100) return toast('우유가 부족합니다');
-  try {
-    const data = await API.post('/cards/draw/milk');
-    const farm = await API.get('/farm/status');
-    updateMilkHUD(farm.milk);
-    runSqueeze(data.cards, '우유 뽑기', ()=>{});
-  } catch(e) { toast(typeof e.message==='string'?e.message:'뽑기 실패'); }
+// ── 카드 공개 팝업 ──
+function showPopup(card){
+  const g=GRADE[card.grade]||GRADE['노말'];
+  const pg=document.getElementById('pg-popup');
+  pg.style.background=g.bg;
+  pg.style.display='flex';
+  pg.style.animation='overlayIn .3s ease';
+
+  // 이미지
+  const img=document.getElementById('popup-img');
+  img.src=`/images/cards/${String(card.id).padStart(3,'0')}.png`;
+  img.style.animation='none'; void img.offsetWidth;
+  img.style.animation='popIn .7s ease forwards';
+  img.onerror=()=>{ img.style.fontSize='180px'; img.src=''; };
+  // 빙글+쿵쿵
+  setTimeout(()=>{ img.style.animation='cowSpin .9s ease, cowBounce 1.3s ease-in-out .9s infinite'; img.style.filter=`drop-shadow(0 0 20px ${g.border}88)`; },700);
+
+  // 텍스트
+  document.getElementById('popup-grade').textContent=card.grade;
+  document.getElementById('popup-grade').style.cssText=`font-size:15px;font-weight:800;padding:5px 20px;border-radius:20px;margin-top:12px;background:${g.border};color:${g.btnTxt};animation:fadeIn .4s ease .5s both;`;
+  document.getElementById('popup-name').textContent=card.name;
+  document.getElementById('popup-desc').textContent=card.description||'';
+
+  // 버튼
+  const btn=document.getElementById('popup-btn');
+  const isLast=drawIdx>=drawCards.length-1;
+  btn.textContent=isLast?(drawCards.length>1?'✨ 완료':'확인'):`다음 카드 짜기 (${drawIdx+2}/${drawCards.length}) →`;
+  btn.style.cssText=`margin-top:20px;padding:13px 36px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;animation:fadeIn .4s ease .85s both;min-width:200px;background:${g.btn};color:${g.btnTxt};`;
+  btn.onclick=()=>{
+    pg.style.display='none';
+    drawIdx++;
+    if(isLast){ goSelect(); }
+    else { loadNextSqueeze(); }
+  };
+
+  // 파티클
+  spawnParticles(card.grade);
+  // 레전드/에픽 화면흔들기
+  if(card.grade==='레전드'||card.grade==='에픽'){
+    document.body.style.animation='shake .45s ease';
+    setTimeout(()=>document.body.style.animation='',450);
+  }
 }
 
-async function doNewUserDraw() {
-  try {
-    const data = await API.post('/cards/draw/new-user');
-    localStorage.setItem('is_new_user','0');
-    document.getElementById('new-user-card').style.display = 'none';
-    runSqueeze(data.cards, '🎁 10연속 뽑기', ()=>{ toast('🎉 10연속 완료! 농장을 확인하세요!'); });
-  } catch(e) { toast(typeof e.message==='string'?e.message:'뽑기 실패'); }
+function closePopup(){
+  document.getElementById('pg-popup').style.display='none';
+  drawIdx++;
+  if(drawIdx>=drawCards.length){ goSelect(); }
+  else { loadNextSqueeze(); }
 }
 
+function spawnParticles(grade){
+  const colors=PT_COLORS[grade]||PT_COLORS['노말'];
+  const cnt=grade==='레전드'?80:grade==='에픽'?55:grade==='레어'?35:16;
+  const layer=document.getElementById('popup-pt');
+  layer.innerHTML='';
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  for(let i=0;i<cnt;i++){
+    const p=document.createElement('div');
+    const sz=5+Math.random()*14;
+    const angle=Math.random()*360;
+    const dist=100+Math.random()*260;
+    const ex=Math.cos(angle*Math.PI/180)*dist;
+    const ey=Math.sin(angle*Math.PI/180)*dist;
+    const color=colors[Math.floor(Math.random()*colors.length)];
+    p.style.cssText=`position:absolute;width:${sz}px;height:${sz}px;background:${color};border-radius:${Math.random()>.4?'50%':'3px'};left:50%;top:45%;pointer-events:none;
+      animation:ptFly ${.5+Math.random()*1}s ease-out ${Math.random()*.4}s forwards;
+      --sx:-${sz/2}px;--sy:-${sz/2}px;--ex:calc(-50% + ${ex}px);--ey:calc(-50% + ${ey}px);`;
+    layer.appendChild(p);
+    setTimeout(()=>p.remove(),1800);
+  }
+  if(grade==='레전드'||grade==='에픽'){
+    const cnt2=grade==='레전드'?20:10;
+    for(let i=0;i<cnt2;i++){
+      const s=document.createElement('div');
+      s.textContent=grade==='레전드'?'★':'✦';
+      s.style.cssText=`position:absolute;font-size:${14+Math.random()*22}px;color:${grade==='레전드'?'#FFD700':'#AFA9EC'};
+        left:${5+Math.random()*90}%;top:${5+Math.random()*80}%;pointer-events:none;
+        animation:fadeIn ${.7+Math.random()*.8}s ease-out ${Math.random()*.5}s both;`;
+      layer.appendChild(s);
+      setTimeout(()=>s.remove(),2000);
+    }
+  }
+}
+
+// ── 초기화 ──
 (async()=>{
-  if (API.isNewUser()) document.getElementById('new-user-card').style.display = 'block';
-  try {
-    const farm = await API.get('/farm/status');
-    updateMilkHUD(farm.milk);
-  } catch(e) {}
+  if(API.isNewUser()) document.getElementById('new-user-card').style.display='block';
+  try{ const d=await API.get('/farm/status'); setMilk(d.milk); }catch(e){}
   checkFreeStatus();
 })();
 </script>
