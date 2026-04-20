@@ -105,7 +105,7 @@
 <div id="pg-squeeze" style="display:none;min-height:100vh;background:var(--bg);">
   <div class="hud">
     <div style="display:flex;align-items:center;gap:8px;">
-      <button onclick="goSelect()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;">←</button>
+      <button id="btn-back" onclick="goSelect()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;">←</button>
       <div class="hud-title" id="squeeze-title">뽑기</div>
     </div>
     <div class="hud-milk" id="hud-milk2">🥛 0</div>
@@ -355,17 +355,22 @@ async function doSqueeze(){
 function showPopup(card){
   const g=GRADE[card.grade]||GRADE['노말'];
   const pg=document.getElementById('pg-popup');
+
+  // 이미지 먼저 초기화 (이전 이미지 잔상 제거)
+  const img=document.getElementById('popup-img');
+  img.style.animation='none';
+  img.style.filter='';
+  img.src=''; // 먼저 비움
+  void img.offsetWidth;
+
   pg.style.background=g.bg;
   pg.style.display='flex';
   pg.style.animation='overlayIn .3s ease';
 
-  // 이미지
-  const img=document.getElementById('popup-img');
+  // 새 이미지 로드
   img.src=`/images/cards/${String(card.id).padStart(3,'0')}.png`;
-  img.style.animation='none'; void img.offsetWidth;
   img.style.animation='popIn .7s ease forwards';
   img.onerror=()=>{ img.style.fontSize='180px'; img.src=''; };
-  // 빙글+쿵쿵
   setTimeout(()=>{ img.style.animation='cowSpin .9s ease, cowBounce 1.3s ease-in-out .9s infinite'; img.style.filter=`drop-shadow(0 0 20px ${g.border}88)`; },700);
 
   // 텍스트
