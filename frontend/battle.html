@@ -19,7 +19,10 @@
 <div class="page">
   <div class="hud">
     <div class="hud-title">⚔️ 배틀</div>
-    <div class="hud-milk" id="hud-milk">🥛 0</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hud-milk" id="hud-milk">🥛 0</div>
+      <button onclick="API.logout()" style="background:none;border:0.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-sub);padding:4px 8px;cursor:pointer;">로그아웃</button>
+    </div>
   </div>
 
   <!-- 결과 확인 화면 (URL 파라미터 있을 때) -->

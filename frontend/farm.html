@@ -52,8 +52,15 @@
 <body>
 <div class="page">
   <div class="hud">
-    <div class="hud-title">🌿 나의 농장</div>
-    <div class="hud-milk" id="hud-milk">🥛 0</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="hud-title">🌿 나의 농장</div>
+      <div id="farm-free-timer" style="font-size:10px;padding:2px 7px;border-radius:20px;background:var(--gray-light);color:var(--text-sub);border:0.5px solid var(--border);display:none;">⏱ --:--</div>
+      <div id="farm-free-ready" style="font-size:10px;padding:2px 7px;border-radius:20px;background:#EAF3DE;color:#27500A;border:0.5px solid #3B6D11;display:none;">🎁 무료뽑기!</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hud-milk" id="hud-milk">🥛 0</div>
+      <button onclick="API.logout()" style="background:none;border:0.5px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-sub);padding:4px 8px;cursor:pointer;">로그아웃</button>
+    </div>
   </div>
 
   <div id="farm-stage">
@@ -83,22 +90,7 @@
     <div class="section-head" style="padding:0 0 8px;">보유 젖소</div>
     <div id="card-summary" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
   </div>
-
-  <!-- 신규 유저 오버레이 -->
-  <div id="new-user-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;">
-    <div style="background:var(--card-bg);border-radius:var(--radius);padding:24px;max-width:360px;width:90%;text-align:center;max-height:90vh;overflow-y:auto;">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-        <button onclick="document.getElementById('new-user-overlay').style.display='none';loadFarm();" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;">✕</button>
-      </div>
-      <div style="font-size:36px;margin-bottom:8px;">🎁</div>
-      <div style="font-size:18px;font-weight:700;margin-bottom:6px;">신규 유저 혜택!</div>
-      <div style="font-size:13px;color:var(--text-sub);margin-bottom:20px;">10연속 뽑기를 무료로 드립니다!</div>
-      <div id="new-user-gacha-container"></div>
-      <button id="new-user-start-btn" class="btn btn-primary btn-full" onclick="startNewUserGacha()">지금 바로 뽑기!</button>
-    </div>
-  </div>
-
-  <nav class="nav">
+<nav class="nav">
     <a href="/farm.html" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>농장
     </a>
@@ -235,17 +227,39 @@ async function loadFarm() {
   } catch(e) {}
 }
 
-async function startNewUserGacha() {
-  document.getElementById('new-user-start-btn').style.display = 'none';
+}
+
+let _farmTimerInterval = null;
+
+async function checkFreeTimerFarm() {
   try {
-    const data = await API.post('/cards/draw/new-user');
-    localStorage.setItem('is_new_user', '0');
-    gachaScene = new GachaScene('new-user-gacha-container');
-    gachaScene.startMulti(data.cards, () => {
-      document.getElementById('new-user-overlay').style.display = 'none';
-      loadFarm();
-    });
-  } catch(e) { toast(e.message); }
+    const data = await API.get('/cards/draw/free/status');
+    const timerEl = document.getElementById('farm-free-timer');
+    const readyEl = document.getElementById('farm-free-ready');
+    if (data.can_draw) {
+      timerEl.style.display = 'none';
+      readyEl.style.display = 'inline-block';
+    } else {
+      readyEl.style.display = 'none';
+      timerEl.style.display = 'inline-block';
+      let secs = data.remaining_seconds;
+      clearInterval(_farmTimerInterval);
+      const pad = n => String(n).padStart(2,'0');
+      const update = () => {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        timerEl.textContent = `⏱ ${pad(m)}:${pad(s)}`;
+        if (secs <= 0) {
+          clearInterval(_farmTimerInterval);
+          timerEl.style.display = 'none';
+          readyEl.style.display = 'inline-block';
+        }
+        secs--;
+      };
+      update();
+      _farmTimerInterval = setInterval(update, 1000);
+    }
+  } catch(e) {}
 }
 
 async function checkBattleResult() {
@@ -258,10 +272,11 @@ async function checkBattleResult() {
 
 (async () => {
   if (API.isNewUser()) {
-    document.getElementById('new-user-overlay').style.display = 'flex';
-  } else {
-    await checkBattleResult();
+    toast('🎁 신규 혜택! 뽑기 페이지에서 10연속 무료뽑기를 받으세요!', 4000);
+    setTimeout(() => location.href = '/gacha.html', 1500);
+    return;
   }
+  await checkBattleResult();
   await loadFarm();
   setInterval(() => {
     if (farmCards.length > 0) dropMilkIcon(1);
