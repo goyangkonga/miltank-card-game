@@ -350,19 +350,11 @@ function dropMilkIcon(amount) {
 }
 
 async function checkMilkPending() {
-  // 실제 pending 우유 확인
-  try {
-    const data = await API.post('/farm/collect');
-    updateMilkUI(data.total_milk);
-    if (data.collected > 0) {
-      // 쌓인 우유만큼 아이콘 표시 (최대 5개)
-      const iconCount = Math.min(5, Math.ceil(data.collected / 5) + 1);
-      for (let i = 0; i < iconCount; i++) {
-        setTimeout(() => dropMilkIcon(1), i * 300);
-      }
-      toast(`🥛 우유 ${data.collected}개가 쌓여있어요!`);
-    }
-  } catch(e) {}
+  // 농장에 젖소가 있으면 항상 우유 아이콘 표시
+  if (farmCards.length > 0) {
+    dropMilkIcon(1);
+    setTimeout(() => dropMilkIcon(1), 3000);
+  }
 }
 
 async function collectAll() {
@@ -450,10 +442,10 @@ async function checkBattleResult() {
   checkFreeTimerFarm();
 
   // 우유 드랍 주기
-  // 2분마다 우유 확인
+  // 30초마다 우유 아이콘 드랍
   setInterval(() => {
     if (farmCards.length > 0) checkMilkPending();
-  }, 120000);
+  }, 30000);
 
   // 다른 탭에서 돌아올 때 새로고침
   document.addEventListener('visibilitychange', () => {
