@@ -286,7 +286,8 @@ class SqueezeManager {
     this.cards = cards;
     this.idx = 0;
     this.onAllDone = onAllDone;
-    this._next();
+    // DOM이 완전히 준비된 후 실행
+    setTimeout(() => this._next(), 50);
   }
 
   _next() {
@@ -298,11 +299,12 @@ class SqueezeManager {
     const total = this.cards.length;
     const idx = this.idx;
 
-    // 씬 초기화
+    // 씬이 없으면 새로 생성, 있으면 재사용
     if (!this.scene) {
       this.scene = new GachaScene(this.containerId);
     }
-    this.scene.setCard(card, total > 1 ? `${idx+1} / ${total}장 뽑기` : '');
+    const progressText = total > 1 ? `${idx+1} / ${total}장 뽑기` : '';
+    this.scene.setCard(card, progressText);
     this.scene.done = false;
 
     this.scene.onDone = async (doneCard) => {

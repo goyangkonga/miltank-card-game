@@ -178,9 +178,12 @@ async function checkFreeStatus() {
 // ── 뽑기 실행 ──
 function runSqueeze(cards, title, onDone) {
   showSqueeze(title);
-  squeezeManager = new SqueezeManager('gacha-container');
+  // GachaScene 생성 (컨테이너 HTML 세팅)
   gachaScene = new GachaScene('gacha-container');
+  // SqueezeManager 생성 후 scene 주입
+  squeezeManager = new SqueezeManager('gacha-container');
   squeezeManager.scene = gachaScene;
+  // start()가 내부에서 _next()→setCard() 호출함
   squeezeManager.start(cards, () => {
     hideSqueeze();
     if (onDone) onDone();
