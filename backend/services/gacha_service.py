@@ -11,7 +11,7 @@ for c in ALL_CARDS:
     g = c["grade"]
     CARDS_BY_GRADE.setdefault(g, []).append(c)
 
-FREE_DRAW_COOLDOWN_HOURS = 1
+FREE_DRAW_COOLDOWN_HOURS = 1/6  # 10분
 
 def draw_one() -> dict:
     grades  = list(GRADE_WEIGHTS.keys())
