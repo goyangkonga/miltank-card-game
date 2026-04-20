@@ -68,7 +68,7 @@
 
 <script src="/static/api.js"></script>
 <script>
-if (API.isLoggedIn()) location.href = '/farm.html';
+if (API.isLoggedIn()) location.href = '/loading.html';
 
 function switchTab(name, btn) {
   document.getElementById('tab-login').style.display = name==='login' ? 'flex' : 'none';
@@ -90,7 +90,7 @@ async function doLogin() {
   try {
     const data = await API.post('/auth/login', { username, password });
     API.saveSession(data);
-    location.href = '/farm.html';
+    location.href = '/loading.html';
   } catch(e) { toast(e.message); }
 }
 
