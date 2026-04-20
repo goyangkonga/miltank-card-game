@@ -24,6 +24,9 @@
 
   <!-- 결과 확인 화면 (URL 파라미터 있을 때) -->
   <div id="screen-result" style="display:none;padding:12px;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+      <button onclick="confirmResult()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;">✕</button>
+    </div>
     <div id="battle-scene-container"></div>
     <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="confirmResult()">확인</button>
   </div>
@@ -32,6 +35,9 @@
   <div id="screen-battle">
     <!-- 대기 중 상태 -->
     <div id="waiting-panel" style="display:none;padding:20px;text-align:center;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button onclick="cancelQueue()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;">✕</button>
+      </div>
       <div style="font-size:36px;margin-bottom:12px;">⏳</div>
       <div style="font-size:16px;font-weight:600;margin-bottom:6px;">상대를 찾는 중...</div>
       <div style="font-size:13px;color:var(--text-sub);margin-bottom:4px;" id="waiting-card-name"></div>

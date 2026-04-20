@@ -87,6 +87,9 @@
   <!-- 신규 유저 오버레이 -->
   <div id="new-user-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;">
     <div style="background:var(--card-bg);border-radius:var(--radius);padding:24px;max-width:360px;width:90%;text-align:center;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+        <button onclick="document.getElementById('new-user-overlay').style.display='none';loadFarm();" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;">✕</button>
+      </div>
       <div style="font-size:36px;margin-bottom:8px;">🎁</div>
       <div style="font-size:18px;font-weight:700;margin-bottom:6px;">신규 유저 혜택!</div>
       <div style="font-size:13px;color:var(--text-sub);margin-bottom:20px;">10연속 뽑기를 무료로 드립니다!</div>
