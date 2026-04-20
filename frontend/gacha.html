@@ -97,7 +97,7 @@
     </div>
   </div>
 
-  <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+  <div class="select-section" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 
     <!-- 신규 유저 10연속 -->
     <div id="new-user-card" style="display:none;background:linear-gradient(135deg,#FAEEDA,#FFF8EC);border-radius:var(--radius);border:1.5px solid #BA7517;padding:16px;">
@@ -200,8 +200,13 @@ const GRADE_STYLE = {
 
 function toast(msg, dur=2500) {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
+  let text = msg;
+  if (typeof msg === 'object') text = msg?.detail || msg?.message || JSON.stringify(msg);
+  el.textContent = text; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), dur);
+}
+function errMsg(e) {
+  try { const d = JSON.parse(e.message); return d?.detail || e.message; } catch { return e.message; }
 }
 
 function updateMilkHUD(val) {
@@ -320,8 +325,20 @@ function startSqueezeQueue(cards, onDone) {
   _runNextSqueeze();
 }
 
+function _showSelect() {
+  document.getElementById('screen-gacha').style.display = 'none';
+  document.querySelectorAll('.select-section').forEach(el => el.style.display = '');
+  document.querySelector('.nav').style.display = 'flex';
+}
+function _hideSelect() {
+  document.querySelectorAll('.select-section').forEach(el => el.style.display = 'none');
+  document.querySelector('.nav').style.display = 'none';
+  document.getElementById('screen-gacha').style.display = 'block';
+}
+
 function _runNextSqueeze() {
   if (_squeezeIdx >= _squeezeQueue.length) {
+    _showSelect();
     if (_squeezeOnDone) _squeezeOnDone();
     return;
   }
@@ -329,26 +346,20 @@ function _runNextSqueeze() {
   const total = _squeezeQueue.length;
   const idx = _squeezeIdx;
 
-  // gacha.js GachaScene 으로 짜기 진행
-  document.getElementById('screen-select').style.display = 'none';
-  document.getElementById('screen-gacha').style.display = 'block';
+  _hideSelect();
   document.getElementById('gacha-scene-title').textContent =
     total > 1 ? `${idx+1} / ${total}장 뽑기` : '뽑기';
 
   gachaScene = new GachaScene('gacha-container');
   gachaScene.startSingle(card, () => {
-    // 짜기 완료 → 공개 오버레이
     const isLast = idx === total - 1;
     const btnText = isLast ? '확인' : `다음 카드 (${idx+2}/${total}) →`;
     showReveal(card, btnText, () => {
       document.getElementById('reveal-overlay').style.display = 'none';
       if (isLast) {
-        // 마지막 카드 확인 후 선택 화면으로
-        document.getElementById('screen-gacha').style.display = 'none';
-        document.getElementById('screen-select').style.display = 'block';
+        _showSelect();
         if (_squeezeOnDone) _squeezeOnDone();
       } else {
-        // 다음 카드 짜기
         _squeezeIdx++;
         _runNextSqueeze();
       }
@@ -390,8 +401,7 @@ function showGachaScene(title) {
 }
 
 function backToSelect() {
-  document.querySelector('.page').style.display = 'block';
-  document.getElementById('screen-gacha').style.display = 'none';
+  _showSelect();
   document.getElementById('reveal-overlay').style.display = 'none';
 }
 
@@ -401,7 +411,7 @@ async function doFreeDraw() {
     const farmData = await API.get('/farm/status');
     updateMilkHUD(farmData.milk);
     startSqueezeQueue(data.cards, () => { checkFreeStatus(); });
-  } catch(e) { toast(e.message); }
+  } catch(e) { toast(errMsg(e)); }
 }
 
 async function doMilkDraw() {
@@ -411,7 +421,7 @@ async function doMilkDraw() {
     const farmData = await API.get('/farm/status');
     updateMilkHUD(farmData.milk);
     startSqueezeQueue(data.cards, () => {});
-  } catch(e) { toast(e.message); }
+  } catch(e) { toast(errMsg(e)); }
 }
 
 async function doNewUserDraw() {
@@ -423,7 +433,7 @@ async function doNewUserDraw() {
     startSqueezeQueue(data.cards, () => {
       toast('🎉 10연속 뽑기 완료! 농장을 확인하세요!');
     });
-  } catch(e) { toast(e.message); }
+  } catch(e) { toast(errMsg(e)); }
 }
 
 (async () => {
