@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>젖소 배틀</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { overflow:hidden;background:#1a1a2e; }
+
+#loading-stage {
+  position:fixed;inset:0;
+  background:linear-gradient(180deg,#87CEEB 0%,#B0E0E6 45%,#90EE90 45%,#228B22 100%);
+}
+
+/* 구름 */
+.cloud {
+  position:absolute;
+  background:#fff;
+  border-radius:50px;
+  opacity:0.85;
+}
+.cloud::before, .cloud::after {
+  content:'';position:absolute;background:#fff;border-radius:50%;
+}
+
+/* 젖소 */
+.lc {
+  position:absolute;
+  object-fit:contain;
+  animation:lcWalk var(--dur,8s) linear var(--delay,0s) infinite,
+             lcBob 0.45s ease-in-out infinite;
+}
+@keyframes lcWalk {
+  0%   { left:var(--from); transform:scaleX(var(--dir,1)); }
+  49%  { left:var(--to);   transform:scaleX(var(--dir,1)); }
+  50%  { left:var(--to);   transform:scaleX(calc(var(--dir,1) * -1)); }
+  99%  { left:var(--from); transform:scaleX(calc(var(--dir,1) * -1)); }
+  100% { left:var(--from); transform:scaleX(var(--dir,1)); }
+}
+@keyframes lcBob {
+  0%,100%{margin-bottom:0}
+  50%{margin-bottom:6px}
+}
+@keyframes cloudMove {
+  from{transform:translateX(0)}
+  to{transform:translateX(-110vw)}
+}
+@keyframes spinJump {
+  0%,100%{transform:scaleX(var(--dir,1)) translateY(0) rotate(0)}
+  25%{transform:scaleX(var(--dir,1)) translateY(-60px) rotate(180deg)}
+  50%{transform:scaleX(var(--dir,1)) translateY(0) rotate(360deg)}
+  75%{transform:scaleX(var(--dir,1)) translateY(-30px) rotate(540deg)}
+}
+@keyframes superBounce {
+  0%,100%{margin-bottom:0;transform:scaleX(var(--dir,1))}
+  30%{margin-bottom:80px;transform:scaleX(var(--dir,1)) scaleY(1.1)}
+  60%{margin-bottom:10px;transform:scaleX(var(--dir,1)) scaleY(0.9)}
+}
+
+/* 타이틀 */
+#loading-title {
+  position:absolute;
+  top:12%;left:50%;transform:translateX(-50%);
+  text-align:center;z-index:10;
+}
+#loading-title h1 {
+  font-size:28px;font-weight:800;
+  color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,0.4);
+  white-space:nowrap;
+}
+#loading-title p {
+  font-size:13px;color:rgba(255,255,255,0.85);
+  margin-top:4px;
+  text-shadow:0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* 프로그레스 바 */
+#loading-bar-wrap {
+  position:absolute;bottom:12%;left:50%;transform:translateX(-50%);
+  width:min(280px,70vw);text-align:center;z-index:10;
+}
+#loading-bar-bg {
+  width:100%;height:8px;background:rgba(255,255,255,0.3);
+  border-radius:4px;overflow:hidden;
+}
+#loading-bar {
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#E6F1FB,#85B7EB,#378ADD);
+  border-radius:4px;
+  transition:width .4s ease;
+  position:relative;overflow:hidden;
+}
+#loading-bar::after {
+  content:'🥛';
+  position:absolute;right:-2px;top:50%;
+  transform:translateY(-50%);
+  font-size:14px;
+  animation:milkDrop .6s ease-in-out infinite;
+}
+@keyframes milkDrop{0%,100%{transform:translateY(-50%) scale(1)}50%{transform:translateY(-60%) scale(1.2)}}
+#loading-msg {
+  font-size:13px;font-weight:500;color:#fff;
+  margin-top:10px;text-shadow:0 1px 6px rgba(0,0,0,0.4);
+  animation:msgPulse 1.5s ease-in-out infinite;
+}
+@keyframes msgPulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* 땅 */
+#ground {
+  position:absolute;bottom:0;left:0;right:0;height:45vh;
+  background:linear-gradient(180deg,#228B22 0%,#1a6b1a 100%);
+  z-index:1;
+}
+#grass-line {
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:#32CD32;z-index:2;
+}
+</style>
+</head>
+<body>
+<div id="loading-stage">
+  <!-- 배경 -->
+  <div id="ground"><div id="grass-line"></div></div>
+
+  <!-- 타이틀 -->
+  <div id="loading-title">
+    <h1>🐄 젖소 배틀</h1>
+    <p>젖소를 모아 최강의 농장을 만들어라!</p>
+  </div>
+
+  <!-- 구름 컨테이너 -->
+  <div id="clouds"></div>
+
+  <!-- 젖소 컨테이너 -->
+  <div id="cows" style="position:absolute;inset:0;z-index:3;"></div>
+
+  <!-- 프로그레스 -->
+  <div id="loading-bar-wrap">
+    <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+    <div id="loading-msg">농장 불러오는 중...</div>
+  </div>
+</div>
+
+<script src="/static/api.js"></script>
+<script>
+// 카드 풀 (등급별 대표 id)
+const CARD_IDS = {
+  레전드: ['001','002','003','004'],
+  에픽:   ['005','006','007','008','009','010'],
+  레어:   ['031','032','033','034','035'],
+  노말:   ['061','062','063','064','065','066','067','068'],
+};
+const ALL_IDS = Object.values(CARD_IDS).flat();
+
+function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+// 구름 생성
+function makeClouds() {
+  const container = document.getElementById('clouds');
+  for (let i=0;i<5;i++) {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const w = 80 + Math.random()*120;
+    const h = w * 0.4;
+    c.style.cssText = `
+      width:${w}px;height:${h}px;
+      top:${5+Math.random()*30}%;
+      left:${Math.random()*110}%;
+      animation:cloudMove ${20+Math.random()*20}s linear ${-Math.random()*20}s infinite;
+      z-index:2;
+    `;
+    c.style.setProperty('--to', '-110vw');
+    // 구름 모양
+    c.innerHTML = `<div style="position:absolute;width:${w*0.5}px;height:${h*1.4}px;background:#fff;border-radius:50%;top:-${h*0.4}px;left:${w*0.15}px;"></div>
+    <div style="position:absolute;width:${w*0.4}px;height:${h*1.2}px;background:#fff;border-radius:50%;top:-${h*0.3}px;left:${w*0.45}px;"></div>`;
+    container.appendChild(c);
+  }
+}
+
+// 젖소 생성
+function makeCows(ownedIds) {
+  const container = document.getElementById('cows');
+  // 보유 젖소 + 랜덤 카드 섞어서 8마리
+  const pool = [...ownedIds.slice(0,5), ...Array(3).fill(0).map(()=>rand(ALL_IDS))];
+  const picked = pool.slice(0,8);
+
+  const rows = [
+    { bottom:'8%',  size:72, zIndex:5 },
+    { bottom:'18%', size:56, zIndex:4 },
+    { bottom:'26%', size:44, zIndex:3 },
+  ];
+  const specials = ['normal','normal','normal','spinJump','superBounce','normal'];
+
+  picked.forEach((id, i) => {
+    const row = rows[i % rows.length];
+    const goRight = Math.random() > 0.5;
+    const dur = 7 + Math.random() * 8;
+    const delay = -(Math.random() * dur);
+    const special = specials[i % specials.length];
+
+    const img = document.createElement('img');
+    img.src = `/images/cards/${String(id).padStart(3,'0')}.png`;
+    img.onerror = () => img.src = '';
+
+    let anim = `lcWalk ${dur}s linear ${delay}s infinite, lcBob 0.45s ease-in-out infinite`;
+    if (special === 'spinJump') {
+      anim = `lcWalk ${dur}s linear ${delay}s infinite, spinJump 2s ease-in-out ${-Math.random()*3}s infinite`;
+    } else if (special === 'superBounce') {
+      anim = `lcWalk ${dur}s linear ${delay}s infinite, superBounce 1.5s ease-in-out ${-Math.random()*2}s infinite`;
+    }
+
+    img.style.cssText = `
+      position:absolute;
+      width:${row.size}px;height:${row.size}px;
+      object-fit:contain;
+      bottom:${row.bottom};
+      z-index:${row.zIndex};
+      --from:${goRight ? '-80px' : '105%'};
+      --to:${goRight ? '105%' : '-80px'};
+      --dir:${goRight ? 1 : -1};
+      animation:${anim};
+    `;
+    container.appendChild(img);
+  });
+}
+
+// 프로그레스 애니메이션
+function setProgress(pct, msg) {
+  document.getElementById('loading-bar').style.width = pct + '%';
+  if (msg) document.getElementById('loading-msg').textContent = msg;
+}
+
+// 우유 생산 메시지 목록
+const MILK_MSGS = [
+  '🥛 젖소들이 우유 생산 중...',
+  '🐄 젖소들이 열심히 뛰어놀고 있어요!',
+  '🥛 신선한 우유를 모으는 중...',
+  '🐄 젖소들이 집합하고 있어요!',
+  '🥛 농장을 준비하는 중...',
+  '🐄 젖소들이 우유를 가득 채우는 중...',
+  '🥛 오늘도 풍성한 수확이에요!',
+];
+let msgIdx = 0;
+
+function nextMsg() {
+  document.getElementById('loading-msg').textContent = MILK_MSGS[msgIdx % MILK_MSGS.length];
+  msgIdx++;
+}
+
+// 프로그레스를 7초에 걸쳐 자연스럽게 채움
+function animateProgress(targetPct, durationMs) {
+  return new Promise(resolve => {
+    const bar = document.getElementById('loading-bar');
+    const start = parseFloat(bar.style.width) || 0;
+    const diff = targetPct - start;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const ratio = Math.min(elapsed / durationMs, 1);
+      // ease-in-out
+      const eased = ratio < 0.5 ? 2*ratio*ratio : -1+(4-2*ratio)*ratio;
+      bar.style.width = (start + diff * eased) + '%';
+      if (ratio < 1) requestAnimationFrame(tick);
+      else resolve();
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+// 메인 로딩 로직
+(async () => {
+  makeClouds();
+  // 초기 메시지 + 빈 젖소들 먼저 배치 (기본 카드로)
+  const defaultIds = [rand(ALL_IDS), rand(ALL_IDS), rand(ALL_IDS), rand(ALL_IDS)];
+  makeCows(defaultIds);
+  nextMsg();
+  setProgress(0, '');
+
+  const TOTAL_MS = 7000; // 7초
+  const start = Date.now();
+
+  // 메시지 1초마다 변경
+  const msgInterval = setInterval(nextMsg, 1000);
+
+  // API 호출 (백그라운드)
+  let ownedIds = defaultIds;
+  const apiPromise = Promise.all([
+    API.get('/farm/status'),
+    API.get('/cards/collection'),
+  ]).then(([farmData, cardData]) => {
+    ownedIds = (cardData.cards || []).map(c => c.id);
+    // 실제 보유 젖소로 업데이트
+    if (ownedIds.length > 0) {
+      document.getElementById('cows').innerHTML = '';
+      makeCows(ownedIds);
+    }
+  }).catch(() => {});
+
+  // 프로그레스 단계별 애니메이션 (총 7초)
+  await animateProgress(25, 1500);   // 0~1.5초: 0→25%
+  await animateProgress(55, 2000);   // 1.5~3.5초: 25→55%
+  await animateProgress(80, 2000);   // 3.5~5.5초: 55→80%
+  await animateProgress(95, 1000);   // 5.5~6.5초: 80→95%
+
+  // API 완료 대기 (최대 7초까지)
+  const elapsed = Date.now() - start;
+  if (elapsed < TOTAL_MS) {
+    await new Promise(r => setTimeout(r, TOTAL_MS - elapsed));
+  }
+
+  clearInterval(msgInterval);
+  document.getElementById('loading-msg').textContent = '🐄 농장 입장!';
+  await animateProgress(100, 300);
+  await new Promise(r => setTimeout(r, 200));
+
+  location.href = '/farm.html';
+})();
+</script>
+</body>
+</html>
